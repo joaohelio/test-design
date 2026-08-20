@@ -1,6 +1,6 @@
 ---
 name: test-design
-description: Apply industry-standard, ISTQB-aligned test-design techniques whenever creating, extending, or reviewing tests (unit/integration/e2e, any language) — equivalence partitioning, boundary value analysis, decision tables, state transition testing, branch coverage, error guessing. Also use for test plans, test strategy, test case prioritization, defect reports, risk-based testing, acceptance criteria/ATDD, and testing terminology questions (test levels, test types, coverage items, testing principles, ISTQB concepts).
+description: Apply industry-standard, ISTQB-aligned test-design techniques whenever creating, extending, or reviewing tests (unit/integration/e2e, any language) — equivalence partitioning, boundary value analysis, decision tables, state transition testing, event-sequence/idempotency testing (duplicate, out-of-order, or redelivered messages; event consumers; webhooks), branch coverage, error guessing. Also use for testing data migrations/backfills, infrastructure-as-code, and rendered output (golden-file/snapshot testing), and for test plans, test strategy, test case prioritization, defect reports, risk-based testing, acceptance criteria/ATDD, and testing terminology questions (test levels, test types, coverage items, testing principles, ISTQB concepts).
 ---
 
 # Systematic Test Design
@@ -21,14 +21,21 @@ coverage achieved.
    | Logic shape | Technique | Full coverage means |
    |---|---|---|
    | Ordered input ranges / domains | Equivalence partitioning + boundary value analysis | every partition (valid **and** invalid) hit once; every boundary neighborhood (three-point for critical logic, two-point otherwise) |
-   | Combinations of conditions / business rules | Decision table | every feasible rule column exercised |
-   | Stateful / lifecycle behavior (status fields, state machines, sagas) | State transition | all valid transitions minimum; invalid transitions attempted **one per test case** |
+   | Combinations of conditions / business rules | Decision table | every feasible rule column of the minimized table exercised (infeasible = impossible, not unlikely; past ~15–20 columns fall back to pairwise + full columns for risk-critical rules) |
+   | Stateful / lifecycle behavior (status fields, state machines, sagas) | State transition | all valid transitions minimum; invalid transitions attempted **one per test case**; **redundant** transitions (a valid trigger redelivered) shown to no-op, not reject |
+   | Event/message consumers under at-least-once delivery (queue handlers, webhooks, multi-consumer propagation) | Event-sequence & idempotency | every event replayed in each state where it applies (no-op asserted, **including no repeated side effect**); every ordering-dependent event pair delivered out of order; redelivery after simulated mid-handler failure |
    | Multiple independent parameter sets | Each-choice coverage | each partition of each parameter hit at least once (combinations not required) |
-   | Everything else / final sweep | Error guessing over the fault categories: input, output, logic, computation, interfaces, data & state | — |
+   | Everything else / final sweep | Error guessing over the fault categories: input, output, logic, computation, interfaces, data & state, third-party integrations | — |
+
+   When one object matches two rows (stateful **and** rule-gated is the common
+   pair), cover each model independently by default; cross state × rule only
+   for rules whose outcome plausibly depends on the originating state, chosen
+   by risk — and say which was done in the coverage statement.
 
    Details and worked examples:
    [references/input-domain-testing.md](references/input-domain-testing.md),
    [references/logic-and-state-testing.md](references/logic-and-state-testing.md),
+   [references/event-driven-testing.md](references/event-driven-testing.md),
    [references/coverage-and-heuristics.md](references/coverage-and-heuristics.md).
 
 3. **Derive systematically**: test conditions → coverage items → test cases.
@@ -52,12 +59,14 @@ coverage achieved.
 
 Reviewing existing tests uses the same table in reverse: map cases to coverage
 items and report the gaps (missed partitions, untested boundaries, uncovered
-decision-table columns, unexercised transitions).
+decision-table columns, unexercised transitions, unreplayed/unreordered event
+deliveries).
 
 ## Routing for other tasks
 
 | Task | Reference |
 |---|---|
+| Data migrations/backfills (parity, re-run idempotency, cutover, rollback), infrastructure-as-code (plan diffs, policy checks, restore drills), rendered output — PDFs, documents, layout (golden-file/snapshot testing) | [references/migration-infra-and-output-testing.md](references/migration-infra-and-output-testing.md) — these artifact classes have their own disciplines; don't force the logic techniques onto them |
 | Test plan content, entry/exit criteria, estimation (ratios, three-point, estimation poker), prioritization, test pyramid, quadrants, risk-based testing, metrics/reports, **defect reports** | [references/test-process-management.md](references/test-process-management.md) |
 | User stories (3 C's, INVEST), acceptance criteria formats, ATDD/TDD/BDD | [references/specification-collaboration.md](references/specification-collaboration.md) |
 | Terminology and concepts: testing principles, test levels/types, confirmation vs regression, static testing & review types, tools/automation, glossary | [references/terminology.md](references/terminology.md) |
