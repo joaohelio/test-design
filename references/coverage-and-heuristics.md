@@ -23,9 +23,42 @@ exists. A missing requirement produces no uncovered lines — **defects of
 omission are invisible to coverage**, which is why structure complements, and
 never replaces, specification-based design.
 
-Practical loop in Go: design the black-box cases first, then
-`go test -coverprofile=c.out ./... && go tool cover -html=c.out`, then add a
-case per meaningful uncovered branch.
+Practical loop, with whatever the toolchain offers (in Go,
+`go test -coverprofile=c.out ./... && go tool cover -html=c.out`): design the
+black-box cases first, measure, then add a case per meaningful uncovered
+branch.
+
+## Assertion Quality
+
+Coverage decides *which cases exist* and says nothing about *what each case
+checks*. A suite with perfect partitions asserting `err == nil` on every row
+satisfies every criterion in this skill and catches nothing.
+
+- **Assert the behavior the coverage item names.** The boundary case asserts
+  the result *at* the limit, not that the call returned; the invalid-partition
+  case asserts the specific refusal, not that some error came back. If the
+  assertion would still pass with that behavior deleted from the code, the case
+  is decorative.
+- **Side effects are half the assertion.** Final state *and* emissions — rows
+  written, events published, notifications sent, money moved — plus, where it
+  matters, that nothing else happened. This is what makes an idempotency test
+  real (see [event-driven-testing.md](event-driven-testing.md)).
+- **Know where the expected value comes from** — the *test oracle*: the
+  specification, an independently computed value, a parallel run of the system
+  being replaced, or an invariant that must hold. The failure mode is asserting
+  the implementation back at itself — an expected value computed by the code
+  under test, or a snapshot approved without being read (see
+  [migration-infra-and-output-testing.md](migration-infra-and-output-testing.md)).
+  Such a test pins current behavior in place, bugs included, and then reports
+  that as coverage.
+
+**Mutation testing** measures assertion strength directly, and is the honest
+answer to coverage having become a target instead of a metric: mutate the code
+— flip a comparison, drop a statement, change a constant — re-run the suite,
+and count the mutants it kills. A mutant surviving on a *covered* line is an
+assertion that isn't checking anything, which no coverage number can reveal.
+It's expensive over a whole codebase: point it at the modules where correctness
+matters and treat the survivors as a worklist, not a percentage to maximize.
 
 ## Error Guessing
 
@@ -81,5 +114,7 @@ produces.
 ---
 *Further reading: Whittaker, "How to Break Software" (fault attacks); Kaner,
 Bach & Pettichord, "Lessons Learned in Software Testing" (exploratory testing);
-ISO/IEC/IEEE 29119-4 (structural coverage); the ISTQB CTFL syllabus
+DeMillo, Lipton & Sayward, "Hints on Test Data Selection" and Jia & Harman's
+mutation-testing survey (mutation testing); ISO/IEC/IEEE 29119-4 (structural
+coverage); the ISTQB CTFL syllabus
 (istqb.org).*
