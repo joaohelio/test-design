@@ -27,6 +27,14 @@ may tick off partitions of several parameters at once. Reserve combination
 testing (see decision tables) for parameters whose *interaction* carries the
 logic.
 
+Each-choice is cheap precisely because it is blind to interactions: it can hit
+every partition of every parameter and never pair the two values that break
+together. **Pairwise** is the middle rung — every value pair of every parameter
+pair in at least one test — and is where to go past roughly 4–5 parameters, or
+sooner when the parameters plausibly affect each other's outcome. The criterion
+and its escalation order live in
+[logic-and-state-testing.md](logic-and-state-testing.md).
+
 ## Boundary Value Analysis
 
 Off-by-one mistakes concentrate at partition edges — a comparison written with

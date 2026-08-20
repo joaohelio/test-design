@@ -7,15 +7,25 @@ dictate the cases:
 
 - **Equivalence partitioning + boundary value analysis** for ordered input
   ranges (two-point or three-point boundaries)
-- **Decision tables** for combinations of business rules
+- **Decision tables** for combinations of business rules, falling back to
+  **pairwise** when the combinations explode
 - **State transition testing** for lifecycles and state machines
+- **Event-sequence & idempotency testing** for queue handlers and webhooks
+  under at-least-once delivery — replays, out-of-order pairs, redelivery after
+  a mid-handler failure
 - **Each-choice coverage** for independent parameter sets
 - **Branch coverage** checks and an **error-guessing** sweep as complements
 
-Each delivered test names its coverage item, and the suite reports the coverage
-achieved (partitions, boundaries, rule columns, transitions). The skill also
-answers testing-terminology questions and helps with test plans, risk-based
-prioritization, acceptance criteria/ATDD, and defect reports.
+Artifacts that aren't logic get their own disciplines instead of the techniques
+above: data migrations and backfills, infrastructure-as-code, and rendered
+output (golden-file/snapshot testing).
+
+Each delivered test names its coverage item and asserts the behavior that item
+names, and the suite reports the coverage achieved (partitions, boundaries,
+rule columns, transitions). Rigor scales with risk — a trivial function gets a
+case, not a model. The skill also answers testing-terminology questions and
+helps with test plans, risk-based prioritization, acceptance criteria/ATDD, and
+defect reports.
 
 ## Install
 
@@ -29,7 +39,8 @@ Restart Claude Code; the skill triggers automatically on test-writing tasks.
 
 - `SKILL.md` — the technique-selection workflow Claude follows
 - `references/` — technique guides loaded on demand (input domains, logic &
-  state, structural coverage & heuristics, specifications, process, terminology)
+  state, event-driven, migrations/infra/rendered output, structural coverage,
+  assertion quality & heuristics, specifications, process, terminology)
 
 ## License
 
