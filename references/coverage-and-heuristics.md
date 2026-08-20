@@ -45,6 +45,9 @@ A general checklist by fault type:
   seconds vs millis), nil where a value is assumed
 - **Data & state** — uninitialized values, stale caches, concurrent mutation,
   timezone/DST edges, leap days
+- **Third-party integrations** — timeouts, malformed or partial responses,
+  silent schema drift in the provider's payload, ambiguous outcomes (charged
+  but errored — was the money moved?), rate limiting and retry storms
 
 The formalized version — building a catalog of likely faults and writing one
 test per entry to provoke each — is called a **fault attack**.

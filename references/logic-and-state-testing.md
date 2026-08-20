@@ -20,9 +20,31 @@ Building the table:
 
 The payoff isn't only the tests — drawing the table routinely exposes
 requirement gaps ("what *should* happen for paid + expired?") and
-contradictions before any code runs. If the table is still huge after
-minimizing, cut it by risk, and say so rather than pretending the suite is
-exhaustive.
+contradictions before any code runs.
+
+### Combinatorial discipline
+
+"Feasible" is where improvisation sneaks back in unless it's pinned down:
+a combination is **infeasible only when it is logically or physically
+impossible** (a guest user with an admin role, an amount both zero and
+positive). Merely *unlikely* combinations stay in the table — or get cut by
+an explicit risk argument, stated in the coverage report, never silently.
+
+When the minimized table is still large, reduce in this order:
+
+1. **Minimize first** — drop impossible columns, merge columns where a
+   condition's value doesn't change the outcome (`–` entries).
+2. **Past roughly 15–20 remaining columns, or 4–5 conditions, switch to
+   pairwise**: every value pair of every condition pair appears in at least
+   one test. Pairwise catches the two-way interactions where most
+   combination bugs live, at a fraction of the column count.
+3. **Keep full columns for risk-critical rules** — money movement, safety,
+   compliance outcomes get their exact combination tested even under an
+   otherwise pairwise suite.
+
+Always report which discipline the suite uses: "full table, 9 columns" and
+"pairwise over 6 conditions, plus 3 full risk columns" are different claims,
+and a reviewer can only audit the one you actually make.
 
 ### Worked example (Go)
 
@@ -59,6 +81,16 @@ individual states. Model it before testing it:
   testing because its empty cells make the **invalid** transitions visible —
   the "can't happen" moves users and retries will absolutely attempt.
 
+Valid and invalid are not the whole table. A third cell type exists wherever
+triggers can be delivered more than once (retries, at-least-once messaging,
+double-clicks): the **redundant** transition — a *valid* trigger arriving when
+its effect is already applied. It is not an invalid move to be refused; the
+required behavior is a defined no-op that repeats no side effect. Mark these
+cells explicitly (a self-loop with "no action") rather than leaving them
+blank, because a blank cell reads as "refuse" — the opposite of correct
+handling. Deriving cases for redundant and reordered deliveries is its own
+technique: [event-driven-testing.md](event-driven-testing.md).
+
 A test case is a sequence of events driving a path through the model; one
 sequence typically covers several transitions.
 
@@ -77,7 +109,27 @@ Coverage criteria, weakest to strongest:
 For a payment intent with states `created → authorized → captured` and
 `created/authorized → canceled`, all-valid-transitions needs paths covering 4
 edges; all-transitions additionally tries e.g. `captured + cancel` and
-`created + capture` and asserts the refusal, one per test.
+`created + capture` and asserts the refusal, one per test. Where the intent's
+triggers arrive over a retrying transport, add the redundant cells — e.g.
+`authorized + authorize` again must no-op, not double-reserve.
+
+## When One Object Matches Two Models
+
+The same object is often *both* a state-transition subject and a
+decision-table subject — a lifecycle plus rule flags gating some transitions.
+Crossing the two models (every rule column in every state) multiplies suite
+size, so the default is **additive**: cover each model independently, letting
+one test tick items in both.
+
+Cross state × rule only where a rule's outcome **plausibly depends on the
+state the transition starts from** — and pick those cells by risk, not
+exhaustively. A discount rule that reads only the cart is state-independent;
+a cancellation-fee rule that differs before and after driver assignment is
+exactly the state-dependent kind worth crossing, because the additive suite
+would test the rule in whichever state happened to be convenient and miss the
+other. Either way, the coverage report must say which was done: "state model
+and rule table covered independently" and "fee rule crossed with the 3 states
+it can fire from" are different claims.
 
 ---
 *Decision tables and state-based testing are classic techniques: Beizer,
